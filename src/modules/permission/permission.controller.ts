@@ -50,6 +50,8 @@ export class PermissionController {
   }
 
   @Post('tree')
+  @Permissions('permission:list')
+  @ApiOperation({ summary: '获取权限树' })
   getTreeByRole(@Body() body: { roleId: number }) {
     return this.permissionService.getTreeByRole(body.roleId)
   }

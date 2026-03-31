@@ -79,12 +79,12 @@ export class PermissionService {
     }
 
     // 查角色权限缓存
-    let checkedKeys = await this.redisService.get(roleKey)
-    if (checkedKeys) {
-      if (typeof checkedKeys === 'string') {
-        checkedKeys = JSON.parse(checkedKeys)
+    let curRoles = await this.redisService.get(roleKey)
+    if (curRoles) {
+      if (typeof curRoles === 'string') {
+        curRoles = JSON.parse(curRoles)
       } else {
-        checkedKeys = []
+        curRoles = []
       }
     } else {
       const role = await this.roleRepository.findOne({
@@ -92,14 +92,14 @@ export class PermissionService {
         relations: ['permissions'],
       })
 
-      checkedKeys = role.permissions.map((item) => item.id)
+      curRoles = role.permissions.map((item) => item.id)
 
-      await this.redisService.set(roleKey, JSON.stringify(checkedKeys), 300)
+      await this.redisService.set(roleKey, JSON.stringify(curRoles), 300)
     }
 
     return {
       tree,
-      checkedKeys,
+      curRoles,
     }
   }
 
@@ -127,7 +127,7 @@ export class PermissionService {
 
         map.get(resource).children.push({
           label: item.name,
-          key: item.id, // 👈 核心字段
+          key: item.id,
           code: item.code,
         })
       })
