@@ -14,6 +14,12 @@ export class AuthController {
     return this.authService.login({ ...loginDto })
   }
 
+  @Post('refresh')
+  @ApiOperation({ summary: '刷新 Token' })
+  refresh(@Body() refreshDto: { refreshToken: string }) {
+    return this.authService.refreshTokens(refreshDto.refreshToken)
+  }
+
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

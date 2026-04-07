@@ -13,7 +13,6 @@ import { createClient } from 'redis'
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        console.log('configService', configService)
         return {
           type: 'mysql',
           autoLoadEntities: true,
@@ -41,7 +40,6 @@ import { createClient } from 'redis'
           url: configService.get('REDIS_URL'),
         })
         await client.connect()
-        console.log('redis connected')
         return client
       },
     },
