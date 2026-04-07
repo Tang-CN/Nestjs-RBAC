@@ -2,12 +2,16 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nes
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { successful } from '../utils/response'
+import { Response } from 'express'
 
 @Injectable()
 export class TransformInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const ctx = context.switchToHttp()
+    const response = ctx.getResponse<Response>()
     return next.handle().pipe(
       map((data) => {
+        response.status(200)
         // 如果已经是统一格式（包含 code 字段），直接返回
         if (data && typeof data === 'object' && 'code' in data && 'message' in data) {
           return data

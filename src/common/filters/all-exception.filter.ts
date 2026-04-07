@@ -18,11 +18,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus()
       const res: any = exception.getResponse()
+      debugger
       if (typeof res === 'string') {
         message = res
       } else if (typeof res === 'object') {
+        // 先使用 CustomException 的 code 和 message
         message = res.message || message
-        code = res.code || code
+        code = res.code || res.statusCode || code
       }
     } else if (exception instanceof Error) {
       message = exception.message
