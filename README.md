@@ -110,16 +110,12 @@ CREATE DATABASE rbac_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ### 4. 初始化数据库
 
-运行数据库初始化脚本，创建初始的管理员用户、角色和权限：
-
-```bash
-npm run db:init
-```
+运行rbac_system数据库，创建初始的管理员用户、角色和权限：
 
 初始化完成后会创建：
 
-- 管理员账号: `admin` / `admin123`
-- 普通用户账号: `user` / `user123`
+- 管理员账号: `admin` / `123456`
+- 普通用户账号: `guest` / `123456`
 - 预设的权限和角色
 
 ### 5. 启动应用
