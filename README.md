@@ -1,6 +1,6 @@
 # NestJS RBAC权限管理系统
 
-基于NestJS + TypeORM + MySQL + Redis的RBAC（基于角色的访问控制）权限管理系统。
+基于NestJS + TypeORM + MySQL + Redis的RBAC（基于角色的访问控制）权限管理系统。企业级开箱即用的后台权限管理脚手架。
 
 ## 功能特性
 
@@ -12,6 +12,13 @@
 - 📝 Swagger API文档
 - 🔄 JWT Token认证
 - 💾 Redis缓存支持
+- 🚀 支持刷新Token
+- ✨ 注解式缓存系统 (@Cache / @CacheEvict)
+- 📋 操作日志审计系统
+- ⚠️ 全局异常统一处理
+- 📦 统一响应格式封装
+- 🔍 接口参数自动校验
+- 🗑️ 软删除支持
 
 ## 技术栈
 
@@ -20,26 +27,41 @@
 - **ORM**: TypeORM
 - **缓存**: Redis
 - **认证**: JWT + Passport
-- **验证**: class-validator
+- **验证**: class-validator + class-transformer
 - **文档**: Swagger
+- **日志**: 内置操作日志审计
 
 ## 项目结构
 
 ```
 src/
-├── modules/
-│   ├── auth/           # 认证模块
-│   │   ├── guards/     # 守卫
-│   │   ├── strategies/ # JWT策略
-│   │   ├── decorators/ # 装饰器
-│   │   └── dto/        # 数据传输对象
-│   ├── user/           # 用户模块
-│   ├── role/           # 角色模块
-│   ├── permission/     # 权限模块
-│   └── redis/          # Redis模块
-├── database/
-│   └── seeds/          # 数据库初始化种子
-└── scripts/            # 脚本文件
+├── @types/                     # 全局类型定义
+├── common/                     # 公共核心组件
+│   ├── decorators/             # 自定义装饰器
+│   │   ├── permissions.decorator.ts    # 权限注解
+│   │   ├── cache.decorator.ts          # 缓存注解
+│   │   ├── cache-evict.decorator.ts    # 缓存清除注解
+│   │   └── operation-log.decorator.ts  # 操作日志注解
+│   ├── interceptors/           # 全局拦截器
+│   │   ├── cache.interceptor.ts        # 缓存自动拦截器
+│   │   ├── cache-evict.interceptor.ts  # 缓存清除拦截器
+│   │   ├── operation-log.interceptor.ts # 操作日志拦截器
+│   │   └── transform.interceptor.ts    # 统一响应拦截器
+│   ├── filters/                # 全局过滤器
+│   │   └── all-exception.filter.ts      # 全局异常过滤器
+│   └── exception/              # 自定义异常
+├── modules/                    # 业务模块
+│   ├── auth/                   # 认证模块
+│   │   ├── guards/             # 权限守卫
+│   │   └── strategies/         # JWT认证策略
+│   ├── user/                   # 用户模块
+│   ├── role/                   # 角色模块
+│   ├── permission/             # 权限模块
+│   └── operation-log/          # 操作日志模块
+├── shared/                     # 共享模块
+│   ├── redis.service.ts        # Redis服务
+│   └── constants/              # 常量定义
+└── app.module.ts               # 应用入口
 ```
 
 ## 快速开始
@@ -115,94 +137,127 @@ npm run start:prod
 
 启动应用后，访问 http://localhost:3000/api 查看Swagger API文档。
 
-## API接口
+## 核心高级特性
 
-### 认证接口
+### ✨ 注解式缓存系统
 
-- `POST /auth/login` - 用户登录
-- `POST /auth/logout` - 用户退出
-- `GET /auth/profile` - 获取当前用户信息
-- `GET /auth/permissions` - 获取当前用户权限
+本系统实现了业务零侵入的注解式缓存体系，无需编写重复的缓存代码。
 
-### 用户管理
-
-- `POST /users` - 创建用户
-- `GET /users` - 获取所有用户
-- `GET /users/:id` - 根据ID获取用户
-- `PATCH /users/:id` - 更新用户
-- `DELETE /users/:id` - 删除用户
-- `PATCH /users/:id/roles` - 更新用户角色
-
-### 角色管理
-
-- `POST /roles` - 创建角色
-- `GET /roles` - 获取所有角色
-- `GET /roles/:id` - 根据ID获取角色
-- `PATCH /roles/:id` - 更新角色
-- `DELETE /roles/:id` - 删除角色
-- `PATCH /roles/:id/permissions` - 更新角色权限
-
-### 权限管理
-
-- `POST /permissions` - 创建权限
-- `GET /permissions` - 获取所有权限
-- `GET /permissions/:id` - 根据ID获取权限
-- `PATCH /permissions/:id` - 更新权限
-- `DELETE /permissions/:id` - 删除权限
-
-## 使用示例
-
-### 1. 用户登录
-
-```bash
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "admin123"}'
-```
-
-### 2. 使用Token访问受保护接口
-
-```bash
-curl -X GET http://localhost:3000/users \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-## 权限控制
-
-系统使用RBAC（基于角色的访问控制）模型：
-
-1. **用户** 拥有多个**角色**
-2. **角色** 拥有多个**权限**
-3. **权限** 定义了具体的操作（如：创建用户、查看用户等）
-
-### 使用权限装饰器
-
-在控制器中使用 `@Permissions()` 装饰器来要求特定权限：
+#### @Cache - 缓存查询结果
 
 ```typescript
-import { Permissions } from '../auth/decorators/permissions.decorator'
+// 缓存角色列表，过期时间30分钟
+@Get()
+@Cache('roles:list', 1800)
+findAll() {
+  return this.roleService.findAll()
+}
 
-@Controller('users')
-export class UserController {
-  @Post()
-  @Permissions('user:create')
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto)
-  }
+// 动态缓存key，自动替换参数
+@Get(':id')
+@Cache('role::id')
+findOne(@Param('id') id: number) {
+  return this.roleService.findOne(id)
 }
 ```
 
-### 使用权限守卫
-
-在模块中使用 `RolesGuard` 来启用权限检查：
+#### @CacheEvict - 自动清除缓存
 
 ```typescript
-import { RolesGuard } from '../auth/guards/roles.guard'
+// 修改数据时自动清除相关缓存
+@Put(':id')
+@CacheEvict('roles:list', 'role::id')
+update(@Param('id') id: number, @Body() updateRoleDto: UpdateRoleDto) {
+  return this.roleService.update(id, updateRoleDto)
+}
 
-@Module({
-  providers: [RolesGuard],
-})
-export class UserModule {}
+// 同时清除多个缓存，支持路径参数和Body参数自动替换
+@Patch(':roleId/permissions')
+@CacheEvict('roles:list', 'permission:list', 'role:permissions::roleId')
+updatePermissions(@Param('roleId') roleId: number, @Body() permissionIds: number[]) {
+  return this.roleService.updatePermissions(roleId, permissionIds)
+}
+```
+
+> 💡 占位符规则：使用 `::参数名` 语法，自动从请求路径、Body中提取参数值，无需手动拼接key。
+
+---
+
+### 📋 操作日志审计系统
+
+使用 `@OperationLog()` 注解自动记录用户操作日志，支持审计追溯：
+
+```typescript
+@Post()
+@OperationLog('创建用户')
+@Permissions('user:create')
+create(@Body() createUserDto: CreateUserDto) {
+  return this.userService.create(createUserDto)
+}
+```
+
+自动记录字段：
+
+- ✅ 操作人、用户ID
+- ✅ 请求IP地址
+- ✅ 操作模块、操作描述
+- ✅ 请求参数、返回结果
+- ✅ 执行耗时、请求状态
+- ✅ 异常信息（如果发生错误）
+
+---
+
+### 🛡️ 权限控制系统
+
+系统采用标准RBAC三级权限模型：
+`用户 → 角色 → 权限`
+
+#### 权限注解使用
+
+```typescript
+// 要求单个权限
+@Post()
+@Permissions('user:create')
+create() { ... }
+
+// 要求多个权限（同时满足）
+@Delete(':id')
+@Permissions('user:delete', 'user:admin')
+remove() { ... }
+```
+
+#### 权限守卫全局生效
+
+所有接口默认需要登录，只有标记权限的接口会进行权限校验。
+
+---
+
+### ⚠️ 全局异常与统一响应
+
+✅ 所有接口成功返回统一格式：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": { ... },
+}
+```
+
+✅ 所有接口失败返回统一格式：
+
+```json
+{
+  "code": 400,
+  "message": "error",
+  "data": { ... },
+}
+```
+
+✅ 业务异常抛出：
+
+```typescript
+throw new CustomException(USER_ERR.USER_PASSWORD_ERROR)
 ```
 
 ## 数据库表结构
@@ -254,6 +309,21 @@ export class UserModule {}
 - role_id: 角色ID
 - permission_id: 权限ID
 
+### operation_logs 表
+
+- id: 主键
+- userId: 操作人ID
+- username: 操作人用户名
+- ip: 请求IP
+- module: 模块
+- description: 操作描述
+- params: 请求参数
+- result: 返回结果
+- duration: 执行耗时(ms)
+- success: 是否成功
+- errorMessage: 错误信息
+- createdAt: 创建时间
+
 ## 开发说明
 
 ### 添加新的权限
@@ -262,9 +332,12 @@ export class UserModule {}
 2. 为角色分配新权限
 3. 在控制器中使用 `@Permissions()` 装饰器
 
-### 自定义权限检查
+### 缓存最佳实践
 
-可以创建自定义的权限检查逻辑，例如基于资源的所有权检查。
+1. 查询接口使用 `@Cache()` 注解，设置合理过期时间
+2. 新增/修改/删除接口使用 `@CacheEvict()` 清除相关缓存
+3. 缓存key命名规范：`模块:属性:id`
+4. 避免缓存过大的数据集
 
 ## 常见问题
 
@@ -279,6 +352,10 @@ export class UserModule {}
 ### 3. JWT Token过期
 
 Token默认7天过期，可以在 `.env` 中修改 `JWT_EXPIRES_IN` 配置。
+
+### 4. 缓存不生效
+
+检查Redis连接是否正常，以及方法是否被AOP代理（不要在类内部调用方法）。
 
 ## 许可证
 
