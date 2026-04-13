@@ -16,11 +16,13 @@ import { CreateRoleDto } from './dto/create-role.dto'
 import { UpdateRoleDto } from './dto/update-role.dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '@/modules/auth/guards/roles.guard'
-import { Permissions } from '@/common/decorators/index'
+import { OperationLog, Permissions } from '@/common/decorators/index'
 import { Cacheable } from '@/common/decorators/index'
 import { CacheEvict } from '@/common/decorators/index'
 import { CacheInterceptor } from '@/common/interceptors/cache.interceptor'
 import { CacheEvictInterceptor } from '@/common/interceptors/cache-evict.interceptor'
+import { OperationAction, OperationModule } from '../operation-log/operation-log.entity'
+import { OperationLogInterceptor } from '@/common/interceptors/operation-log.interceptor'
 
 @ApiTags('角色管理')
 @ApiBearerAuth()
@@ -72,9 +74,16 @@ export class RoleController {
 
   @Post('permissions')
   @Permissions('role:update')
-  @UseInterceptors(CacheEvictInterceptor)
-  @CacheEvict('roles:list', 'roles:detail')
+  @UseInterceptors(CacheEvictInterceptor, OperationLogInterceptor)
+  @CacheEvict('roles:list', 'permission:list', 'role:permissions::roleId')
   @ApiOperation({ summary: '更新角色权限' })
+  @OperationLog({
+    module: OperationModule.ROLE,
+    action: OperationAction.UPDATE,
+    getIdParam: 'roleId',
+    service: RoleService,
+    method: 'findOne',
+  })
   updatePermissions(@Body() body: { roleId: number; permissionIds: number[] }) {
     return this.roleService.updatePermissions(body.roleId, body.permissionIds)
   }

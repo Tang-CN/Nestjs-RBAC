@@ -1,31 +1,28 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { Observable } from 'rxjs'
-import { tap } from 'rxjs/operators'
+import { mergeMap } from 'rxjs/operators'
 import { RedisService } from '@/shared/redis.service'
 import { CACHE_EVICT_KEY } from '../decorators/cache-evict.decorator'
 
 @Injectable()
 export class CacheEvictInterceptor implements NestInterceptor {
-  @Inject(RedisService)
-  private redisService: RedisService
-
-  @Inject(Reflector)
-  private reflector: Reflector
+  constructor(
+    private redisService: RedisService,
+    private reflector: Reflector,
+  ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const cacheKeys = this.reflector.get<string[]>(CACHE_EVICT_KEY, context.getHandler())
 
     return next.handle().pipe(
-      tap(async () => {
-        if (cacheKeys && cacheKeys.length > 0) {
+      mergeMap(async (data) => {
+        if (cacheKeys?.length) {
           const request = context.switchToHttp().getRequest()
 
-          for (const key of cacheKeys) {
-            const fullCacheKey = this.buildCacheKey(key, request)
-            await this.redisService.del(fullCacheKey)
-          }
+          await Promise.all(cacheKeys.map((key) => this.redisService.del(this.buildCacheKey(key, request))))
         }
+        return data
       }),
     )
   }

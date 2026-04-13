@@ -1,17 +1,16 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Inject } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { Observable, of } from 'rxjs'
-import { tap } from 'rxjs/operators'
+import { mergeMap } from 'rxjs/operators'
 import { RedisService } from '@/shared/redis.service'
 import { CACHE_KEY, CACHE_TTL } from '../decorators/cache.decorator'
 
 @Injectable()
 export class CacheInterceptor implements NestInterceptor {
-  @Inject(RedisService)
-  private redisService: RedisService
-
-  @Inject(Reflector)
-  private reflector: Reflector
+  constructor(
+    private redisService: RedisService,
+    private reflector: Reflector,
+  ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const cacheKey = this.reflector.get<string>(CACHE_KEY, context.getHandler())
@@ -34,7 +33,7 @@ export class CacheInterceptor implements NestInterceptor {
 
     // 执行方法并缓存结果
     return next.handle().pipe(
-      tap(async (data) => {
+      mergeMap(async (data) => {
         await this.redisService.set(fullCacheKey, JSON.stringify(data), cacheTTL)
       }),
     )
