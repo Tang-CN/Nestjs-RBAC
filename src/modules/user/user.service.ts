@@ -7,6 +7,7 @@ import { Role } from '../role/role.entity'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { RedisService } from '@/shared/redis.service'
+import { paginate, PageResult, PaginationQuery } from '@/common/utils/paginate'
 
 @Injectable()
 export class UserService {
@@ -37,11 +38,16 @@ export class UserService {
     return await this.userRepository.save(user)
   }
 
-  async findAll(): Promise<User[]> {
-    return await this.userRepository.find({
-      where: { isDeleted: 0 },
-      relations: ['roles', 'roles.permissions'],
-    })
+  async findAll(query: PaginationQuery): Promise<PageResult<User>> {
+    return await paginate(
+      this.userRepository,
+      {
+        where: { isDeleted: 0 },
+        relations: ['roles', 'roles.permissions'],
+        order: { createdAt: 'DESC' },
+      },
+      query,
+    )
   }
 
   async findOne(id: number): Promise<User> {

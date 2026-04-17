@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common'
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
+import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Query } from '@nestjs/common'
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { UserService } from './user.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
@@ -23,9 +23,11 @@ export class UserController {
 
   @Get()
   @Permissions('user:list')
-  @ApiOperation({ summary: '获取所有用户' })
-  findAll() {
-    return this.userService.findAll()
+  @ApiOperation({ summary: '获取用户列表（分页）' })
+  @ApiQuery({ name: 'page', required: false, description: '页码，默认1' })
+  @ApiQuery({ name: 'pageSize', required: false, description: '每页数量，默认10，最大100' })
+  findAll(@Query() query: { page?: string; pageSize?: string }) {
+    return this.userService.findAll(query)
   }
 
   @Get(':id')
