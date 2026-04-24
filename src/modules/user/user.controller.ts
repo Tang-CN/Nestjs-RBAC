@@ -47,8 +47,8 @@ export class UserController {
   @Post('delete')
   @Permissions('user:delete')
   @ApiOperation({ summary: '删除用户' })
-  remove(@Body() body: { userId: number }) {
-    return this.userService.remove(body.userId)
+  remove(@Body() body: { userIds: number[] }) {
+    return this.userService.remove(body.userIds)
   }
 
   @Post('roles')

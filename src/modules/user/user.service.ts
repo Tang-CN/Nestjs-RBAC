@@ -101,10 +101,15 @@ export class UserService {
     return await this.userRepository.save(user)
   }
 
-  async remove(id: number): Promise<void> {
-    const user = await this.findOne(id)
-    user.isDeleted = 1
-    await this.userRepository.save(user)
+  async remove(ids: number[]): Promise<void> {
+    await Promise.all(ids.map((id) => this.redisService.del(`token:${id}`)))
+    await this.userRepository
+      .createQueryBuilder()
+      .update(User)
+      .set({ isDeleted: 1 })
+      .where('id IN (:...ids)', { ids })
+      .andWhere('isDeleted = 0')
+      .execute()
   }
 
   async updateRoles(id: number, roleIds: number[]): Promise<User> {
