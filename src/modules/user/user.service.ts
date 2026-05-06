@@ -35,6 +35,17 @@ export class UserService {
       password: hashedPassword,
     })
 
+    // 处理角色分配
+    const { roleIds } = createUserDto
+    if (roleIds && roleIds.length > 0) {
+      const roles = await this.roleRepository.findBy({
+        id: In(roleIds),
+      })
+      user.roles = roles
+    } else {
+      user.roles = []
+    }
+
     return await this.userRepository.save(user)
   }
 
