@@ -42,7 +42,7 @@ import { createClient } from 'redis'
             port: configService.get('REDIS_PORT'),
           },
         })
-        const res = await client.connect()
+        await client.connect()
         return client
       },
     },

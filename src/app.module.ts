@@ -11,7 +11,7 @@ import { PermissionModule } from './modules/permission/permission.module'
     // 配置模块
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: ['.env.local', '.env.development', '.env'],
     }),
 
     // 公共模块
