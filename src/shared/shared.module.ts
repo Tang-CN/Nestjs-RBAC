@@ -16,11 +16,11 @@ import { createClient } from 'redis'
         return {
           type: 'mysql',
           autoLoadEntities: true,
-          host: process.env.DB_HOST || configService.get('DB_HOST'),
-          port: +process.env.DB_PORT || configService.get('DB_PORT'),
-          username: process.env.DB_USERNAME || configService.get('DB_USERNAME'),
-          password: process.env.DB_PASSWORD || configService.get('DB_PASSWORD'),
-          database: process.env.DB_DATABASE || configService.get('DB_DATABASE'),
+          host: configService.get('DB_HOST'),
+          port: configService.get('DB_PORT'),
+          username: configService.get('DB_USERNAME'),
+          password: configService.get('DB_PASSWORD'),
+          database: configService.get('DB_DATABASE'),
           // synchronize: process.env.NODE_ENV === 'production' ? false : configService.get('DB_SYNC'),
           synchronize: true,
           timezone: '+08:00',
@@ -37,9 +37,12 @@ import { createClient } from 'redis'
       provide: 'REDIS_CLIENT',
       async useFactory(configService: ConfigService) {
         const client = createClient({
-          url: configService.get('REDIS_URL'),
+          socket: {
+            host: configService.get('REDIS_HOST'),
+            port: configService.get('REDIS_PORT'),
+          },
         })
-        await client.connect()
+        const res = await client.connect()
         return client
       },
     },
