@@ -68,8 +68,8 @@ export class RoleController {
   @UseInterceptors(CacheEvictInterceptor)
   @CacheEvict('roles:list', 'roles:detail')
   @ApiOperation({ summary: '删除角色' })
-  remove(@Body() body: { roleId: number }) {
-    return this.roleService.remove(body.roleId)
+  remove(@Body() body: { roleIds: number[] }) {
+    return this.roleService.remove(body.roleIds)
   }
 
   @Post('permissions')

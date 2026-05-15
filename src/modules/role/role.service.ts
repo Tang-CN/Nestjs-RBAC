@@ -54,10 +54,14 @@ export class RoleService {
     return await this.roleRepository.save(role)
   }
 
-  async remove(id: number): Promise<void> {
-    const role = await this.findOne(id)
-    role.isDeleted = 1
-    await this.roleRepository.save(role)
+  async remove(ids: number[]): Promise<void> {
+    await this.roleRepository
+      .createQueryBuilder()
+      .update(Role)
+      .set({ isDeleted: 1 })
+      .where('id IN (:...ids)', { ids })
+      .andWhere('isDeleted = 0')
+      .execute()
   }
 
   async updatePermissions(id: number, permissionIds: number[]): Promise<Role> {
